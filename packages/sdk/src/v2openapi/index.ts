@@ -522,7 +522,7 @@ class RESTApiBuilder {
 				return;
 			case 'object':
 				if (!schema.properties) {
-					if (schema?.additionalProperties && schema.additionalProperties !== false) {
+					if (schema?.additionalProperties) {
 						this.ensureType('scalar', 'JSON');
 						this.addField(parentTypeName, objectKind, fieldName, 'JSON', enclosingTypes);
 					}
