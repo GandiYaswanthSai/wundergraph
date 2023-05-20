@@ -79,6 +79,7 @@ import logger, { FatalLogger, Logger } from '../logger';
 import { resolveServerOptions, serverOptionsWithDefaults } from '../server/util';
 import { loadNodeJsOperationDefaultModule, NodeJSOperation } from '../operations/operations';
 import zodToJsonSchema from 'zod-to-json-schema';
+import { stitcher } from '../wunderctlexec';
 
 const utf8 = 'utf8';
 const generated = 'generated';
@@ -1005,15 +1006,25 @@ export const configureWunderGraphApplication = <
 			const configJsonPath = path.join(generated, 'wundergraph.config.json');
 			const configJSON = ResolvedWunderGraphConfigToJSON(resolved);
 			// config json exists
-			if (fs.existsSync(configJsonPath)) {
-				const existing = fs.readFileSync(configJsonPath, utf8);
-				if (configJSON !== existing) {
-					writeWunderGraphFileSync('config', configJSON);
-				}
-			} else {
-				writeWunderGraphFileSync('config', configJSON);
+			// if (fs.existsSync(configJsonPath)) {
+			// 	const existing = fs.readFileSync(configJsonPath, utf8);
+			// 	if (configJSON !== existing) {
+			// 		writeWunderGraphFileSync('config', configJSON);
+			// 	}
+			// } else {
+			// 	writeWunderGraphFileSync('config', configJSON);
+			// }
+			writeWunderGraphFileSync('configtemp', configJSON);
+			const generatorFolder = path.join('generated', '');
+			const tempConfigFile = path.join('generated', 'wundergraph.configtemp.json');
+			const configFolder = path.join('generated', 'config');
+			const cmd = [`${generatorFolder}`];
+			const { stdout: result } = await stitcher({ cmd });
+			Logger.info(result);
+			if (result == 'File written successfully!') {
+				fs.rmSync(configFolder, { recursive: true, force: true });
+				fs.rmSync(tempConfigFile, { recursive: true, force: true });
 			}
-
 			const publicNodeUrl = trimTrailingSlash(resolveConfigurationVariable(resolved.nodeOptions.publicNodeUrl));
 
 			const postman = PostmanBuilder(app.Operations, {
@@ -1182,7 +1193,28 @@ const ResolvedWunderGraphConfigToJSON = (config: ResolvedWunderGraphConfig): str
 		},
 		dangerouslyEnableGraphQLEndpoint: config.enableGraphQLEndpoint,
 	};
-
+	Logger.info(`datasourceConfigurations count : ${out.api?.engineConfiguration?.datasourceConfigurations.length}`);
+	Logger.info(`fieldConfigurations count : ${out.api?.engineConfiguration?.fieldConfigurations.length}`);
+	const dir = path.join(generated, 'config');
+	if (fs.existsSync(dir)) {
+		fs.rmSync(dir, { recursive: true, force: true });
+	}
+	fs.mkdirSync(dir);
+	let c = 1;
+	out.api?.engineConfiguration?.datasourceConfigurations.forEach((val) => {
+		// if (val.customDatabase) {
+		// 	val.customDatabase.graphqlSchema = "";
+		// 	val.customDatabase.prismaSchema = "";
+		// }
+		writeWunderGraphSubFolderFileSync('config' + c.toString(), val);
+		c++;
+		val.childNodes = [];
+		val.rootNodes = [];
+		return val;
+	});
+	if (out.api?.engineConfiguration?.datasourceConfigurations) {
+		out.api.engineConfiguration.datasourceConfigurations = [];
+	}
 	return JSON.stringify(out, null, 2);
 };
 
@@ -1565,4 +1597,14 @@ const writeWunderGraphFileSync = (fileName: string, contents: object | string, e
 	}
 
 	fs.writeFileSync(path.join(generated, `wundergraph.${fileName}.${extension}`), contents, { encoding: utf8 });
+};
+
+const writeWunderGraphSubFolderFileSync = (fileName: string, contents: object | string, extension = jsonExtension) => {
+	if (typeof contents !== 'string') {
+		contents = JSON.stringify(contents, null, 2);
+	}
+
+	fs.writeFileSync(path.join(generated, 'config', `wundergraph.${fileName}.${extension}`), contents, {
+		encoding: utf8,
+	});
 };
