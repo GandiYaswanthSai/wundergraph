@@ -28,7 +28,7 @@ var prismaCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return introspectDatabaseWithPath(string(content), false, schemaFilePath)
+		return introspectDatabase(string(content), false)
 	},
 }
 

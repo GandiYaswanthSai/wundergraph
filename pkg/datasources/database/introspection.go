@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"go.uber.org/zap"
@@ -31,42 +32,14 @@ func IntrospectPrismaDatabase(ctx context.Context, introspectionSchema, wundergr
 	} else {
 		prismaSchema = introspectionSchema
 	}
-	err = engine.StartQueryEngine(prismaSchema)
+	schemaFile, err := engine.StartQueryEngine(prismaSchema)
 	if err != nil {
-		return "", "", "", err
-	}
-	graphqlSDL, err = engine.IntrospectGraphQLSchema(ctx)
-	if err != nil {
-		return "", "", "", err
-	}
-	dmmf, err = engine.IntrospectDMMF(ctx)
-	if err != nil {
-		return "", "", "", err
-	}
-	return
-}
-
-func IntrospectPrismaDatabaseWithPath(ctx context.Context, introspectionSchema, wundergraphDir string, loadPrismaSchemaFromDatabase bool, file string, log *zap.Logger) (prismaSchema, graphqlSDL, dmmf string, err error) {
-	engine := NewEngine(
-		&http.Client{
-			Timeout: time.Second * 30,
-		},
-		log,
-		wundergraphDir,
-	)
-	defer engine.StopQueryEngine()
-	if loadPrismaSchemaFromDatabase {
-		prismaSchema, err = engine.IntrospectPrismaDatabaseSchema(ctx, introspectionSchema)
-		if err != nil {
-			return "", "", "", err
+		if schemaFile != "" {
+			os.Remove(schemaFile)
 		}
-	} else {
-		prismaSchema = introspectionSchema
-	}
-	err = engine.StartQueryEngineWithPath(file)
-	if err != nil {
 		return "", "", "", err
 	}
+	defer os.Remove(schemaFile)
 	graphqlSDL, err = engine.IntrospectGraphQLSchema(ctx)
 	if err != nil {
 		return "", "", "", err

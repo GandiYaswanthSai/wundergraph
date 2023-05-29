@@ -1202,13 +1202,14 @@ const ResolvedWunderGraphConfigToJSON = (config: ResolvedWunderGraphConfig): str
 	}
 	fs.mkdirSync(dir);
 	let c = 1;
+	let objectSize = 0;
 	// const promises: Promise<void>[] = [];
 	out.api?.engineConfiguration?.datasourceConfigurations.forEach((val: any) => {
 		// if (val.customDatabase) {
 		// 	val.customDatabase.graphqlSchema = "";
 		// 	val.customDatabase.prismaSchema = "";
 		// }
-		writeWunderGraphSubFolderFileSync('config' + c.toString(), val);
+		objectSize += writeWunderGraphSubFolderFileSync('config' + c.toString(), val);
 		// const contents = JSON.stringify(val, null, 2);
 		// promises.push(
 		// 	new Promise<void>((resolve, reject) => {
@@ -1227,6 +1228,7 @@ const ResolvedWunderGraphConfigToJSON = (config: ResolvedWunderGraphConfig): str
 		c++;
 		val.childNodes = [];
 		val.rootNodes = [];
+		Logger.info(`current size with ${c} files : ${objectSize}`);
 		return val;
 	});
 	// try {
@@ -1622,7 +1624,11 @@ const writeWunderGraphFileSync = (fileName: string, contents: object | string, e
 	fs.writeFileSync(path.join(generated, `wundergraph.${fileName}.${extension}`), contents, { encoding: utf8 });
 };
 
-const writeWunderGraphSubFolderFileSync = (fileName: string, contents: object | string, extension = jsonExtension) => {
+const writeWunderGraphSubFolderFileSync = (
+	fileName: string,
+	contents: object | string,
+	extension = jsonExtension
+): number => {
 	if (typeof contents !== 'string') {
 		contents = JSON.stringify(contents, null, 2);
 	}
@@ -1630,4 +1636,6 @@ const writeWunderGraphSubFolderFileSync = (fileName: string, contents: object | 
 	fs.writeFileSync(path.join(generated, 'config', `wundergraph.${fileName}.${extension}`), contents, {
 		encoding: utf8,
 	});
+	const sizeInBytes = new Blob([contents]).size;
+	return sizeInBytes / (1024 * 1024 * 1024);
 };

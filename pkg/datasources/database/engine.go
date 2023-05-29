@@ -252,16 +252,16 @@ func (e *Engine) Request(ctx context.Context, request []byte, rw io.Writer) (err
 	return
 }
 
-func (e *Engine) StartQueryEngineWithPath(schema string) error {
+func (e *Engine) StartQueryEngine(schema string) (schemaFile string, err error) {
 
-	err := e.ensurePrisma()
+	err = e.ensurePrisma()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	freePort, err := freeport.GetFreePort()
 	if err != nil {
-		return err
+		return "", err
 	}
 	port := strconv.Itoa(freePort)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -276,52 +276,51 @@ func (e *Engine) StartQueryEngineWithPath(schema string) error {
 	// https://github.com/prisma/prisma/blob/304c54c732921c88bfb57f5730c7f81405ca83ea/packages/engine-core/src/binary/BinaryEngine.ts#L479
 	e.cmd.Env = append(e.cmd.Env, os.Environ()...)
 	//e.cmd.Env = append(e.cmd.Env, "PRISMA_DML="+schema)
-	e.cmd.Env = append(e.cmd.Env, "PRISMA_DML_PATH="+schema)
+
+	//create temporary file
+	temporaryFile, err := ioutil.TempFile("", "t*.prisma")
+	if err != nil {
+		return "", err
+	}
+
+	// calculate the ARG_MAX limit, minus a safety buffer
+	const safetyBuffer = 2048
+	argMax := 1048576 - safetyBuffer // or however you get the value of ARG_MAX
+
+	if len(schema) < argMax {
+		e.cmd.Env = append(e.cmd.Env, "PRISMA_DML="+schema)
+		e.log.Info("Schema size found in range.")
+	} else {
+		// schema is too big, write it to a temp file
+		if _, err := temporaryFile.Write([]byte(schema)); err != nil { // ignore the error, we're already handling an error
+			return temporaryFile.Name(), err
+		}
+
+		e.cmd.Env = append(e.cmd.Env, "PRISMA_DML_PATH="+temporaryFile.Name())
+	}
+	//e.log.Info("Schema size out of range.")
+	//// schema is too big, write it to a temp file
+	//temporaryFile, err := ioutil.TempFile("", "prisma*.prisma")
+	//if err != nil {
+	//	return err
+	//}
+	//tempFilePath := temporaryFile.Name()
+	////defer os.Remove(tempFilePath)
+	//if _, err := temporaryFile.Write([]byte(schema)); err != nil { // ignore the error, we're already handling an error
+	//	e.log.Error("Error while writing to temp file : ", zap.Error(err))
+	//	return err
+	//}
+	//
+	//e.cmd.Env = append(e.cmd.Env, "PRISMA_DML_PATH="+tempFilePath)
 
 	e.cmd.Stdout = os.Stdout
 	e.cmd.Stderr = os.Stderr
 	e.url = "http://localhost:" + port
 	if err := e.cmd.Start(); err != nil {
 		e.StopQueryEngine()
-		return err
+		return temporaryFile.Name(), err
 	}
-	return nil
-}
-
-func (e *Engine) StartQueryEngine(schema string) error {
-
-	err := e.ensurePrisma()
-	if err != nil {
-		return err
-	}
-
-	freePort, err := freeport.GetFreePort()
-	if err != nil {
-		return err
-	}
-	port := strconv.Itoa(freePort)
-	ctx, cancel := context.WithCancel(context.Background())
-	e.cancel = cancel
-	e.cmd = exec.CommandContext(ctx, e.queryEnginePath, "-p", port, "--enable-raw-queries")
-	// ensure that prisma starts with the dir set to the .wundergraph directory
-	// this is important for sqlite support as it's expected that the path of the sqlite file is the same
-	// (relative to the .wundergraph directory) during introspection and at runtime
-	e.cmd.Dir = e.wundergraphDir
-
-	// append all environment variables, as demonstrated in the following:
-	// https://github.com/prisma/prisma/blob/304c54c732921c88bfb57f5730c7f81405ca83ea/packages/engine-core/src/binary/BinaryEngine.ts#L479
-	e.cmd.Env = append(e.cmd.Env, os.Environ()...)
-	//e.cmd.Env = append(e.cmd.Env, "PRISMA_DML="+schema)
-	e.cmd.Env = append(e.cmd.Env, "PRISMA_DML_PATH=/home/yaswonth/Public/apollo-opensource/runfiles/prisma/tenant1/complete_callhealth_prod.prisma")
-
-	e.cmd.Stdout = os.Stdout
-	e.cmd.Stderr = os.Stderr
-	e.url = "http://localhost:" + port
-	if err := e.cmd.Start(); err != nil {
-		e.StopQueryEngine()
-		return err
-	}
-	return nil
+	return temporaryFile.Name(), nil
 }
 
 func (e *Engine) ensurePrisma() error {
