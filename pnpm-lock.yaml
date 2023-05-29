@@ -354,7 +354,7 @@ importers:
       '@types/write-file-atomic': ^4.0.0
       '@web-std/fetch': ^4.1.0
       '@whatwg-node/fetch': ^0.8.4
-      '@wundergraph/protobuf': ^0.108.0
+      '@wundergraph/protobuf': /app/wundergraph/packages/protobuf
       '@wundergraph/wunderctl': ^0.138.0
       axios: ^0.26.1
       axios-retry: ^3.3.1
@@ -407,7 +407,7 @@ importers:
       '@prisma/generator-helper': 3.15.2
       '@web-std/fetch': 4.1.0
       '@whatwg-node/fetch': 0.8.4
-      '@wundergraph/protobuf': link:../protobuf
+      '@wundergraph/protobuf': link:../../../../../../../../app/wundergraph/packages/protobuf
       '@wundergraph/wunderctl': 0.138.0
       axios: 0.26.1
       axios-retry: 3.3.1
@@ -6586,14 +6586,6 @@ packages:
       fast-querystring: 1.1.1
       fast-url-parser: 1.1.3
       tslib: 2.5.0
-    dev: false
-
-  /@wundergraph/protobuf/0.108.0:
-    resolution: {integrity: sha512-rCI2cN37wYXKgk8gxKRr1FjPNRP8RDlyhiWoQd/IJ1Z+mEg8sWDkqoFx2hf8gG+WVr1MdHRvmolAw3eomdGtTw==}
-    dependencies:
-      long: 5.2.1
-      protobufjs: 6.11.3
-      ts-proto: 1.131.0
     dev: false
 
   /@wundergraph/wunderctl/0.138.0:
@@ -19441,7 +19433,7 @@ packages:
       '@prisma/generator-helper': 3.15.2
       '@web-std/fetch': 4.1.0
       '@whatwg-node/fetch': 0.8.4
-      '@wundergraph/protobuf': 0.108.0
+      '@wundergraph/protobuf': link:../../../../../../app/wundergraph/packages/protobuf
       '@wundergraph/wunderctl': 0.138.0
       axios: 0.26.1
       axios-retry: 3.3.1

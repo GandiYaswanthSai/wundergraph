@@ -25,7 +25,7 @@
     "url": "https://github.com/wundergraph/wundergraph/issues"
   },
   "scripts": {
-    "build": "./generate.sh && tsc"
+    "build": "tsc"
   },
   "dependencies": {
     "long": "^5.2.0",

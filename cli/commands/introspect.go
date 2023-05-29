@@ -65,6 +65,33 @@ func introspectDatabase(introspectionSchema string, loadPrismaSchemaFromDatabase
 	return nil
 }
 
+func introspectDatabaseWithPath(introspectionSchema string, loadPrismaSchemaFromDatabase bool, file string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(introspectionTimeoutSeconds)*time.Second)
+	defer cancel()
+	start := time.Now()
+	wunderGraphDir, err := files.FindWunderGraphDir(_wunderGraphDirConfig)
+	if err != nil {
+		return err
+	}
+	prismaSchema, graphqlSDL, dmmf, err := database.IntrospectPrismaDatabaseWithPath(ctx, introspectionSchema, wunderGraphDir, loadPrismaSchemaFromDatabase, file, log)
+	if err != nil {
+		return err
+	}
+	result := DatabaseIntrospectionResult{
+		PrismaSchema:  prismaSchema,
+		GraphQLSchema: graphqlSDL,
+		Dmmf:          []byte(dmmf),
+	}
+	emitIntrospectionResult(result)
+	if introspectionOutputFile != "" {
+		log.Debug("Introspection Successful",
+			zap.String("outfile", introspectionOutputFile),
+			zap.String("duration", time.Since(start).String()),
+		)
+	}
+	return nil
+}
+
 func emitIntrospectionResult(result DatabaseIntrospectionResult) {
 	data, err := json.Marshal(result)
 	if err != nil {

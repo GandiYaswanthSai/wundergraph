@@ -46,6 +46,38 @@ func IntrospectPrismaDatabase(ctx context.Context, introspectionSchema, wundergr
 	return
 }
 
+func IntrospectPrismaDatabaseWithPath(ctx context.Context, introspectionSchema, wundergraphDir string, loadPrismaSchemaFromDatabase bool, file string, log *zap.Logger) (prismaSchema, graphqlSDL, dmmf string, err error) {
+	engine := NewEngine(
+		&http.Client{
+			Timeout: time.Second * 30,
+		},
+		log,
+		wundergraphDir,
+	)
+	defer engine.StopQueryEngine()
+	if loadPrismaSchemaFromDatabase {
+		prismaSchema, err = engine.IntrospectPrismaDatabaseSchema(ctx, introspectionSchema)
+		if err != nil {
+			return "", "", "", err
+		}
+	} else {
+		prismaSchema = introspectionSchema
+	}
+	err = engine.StartQueryEngineWithPath(file)
+	if err != nil {
+		return "", "", "", err
+	}
+	graphqlSDL, err = engine.IntrospectGraphQLSchema(ctx)
+	if err != nil {
+		return "", "", "", err
+	}
+	dmmf, err = engine.IntrospectDMMF(ctx)
+	if err != nil {
+		return "", "", "", err
+	}
+	return
+}
+
 // ReverseOriginSchemaCompatibility reverses the changes made to the schema by the origin schema compatibility
 // It's currently not used because normalization doesn't work with the raw sql changes
 // TODO: Fix normalization and use this function

@@ -1075,6 +1075,7 @@ const mapRecordValues = <TKey extends string | number | symbol, TValue, TOutputV
 	return output;
 };
 
+// async function ResolvedWunderGraphConfigToJSON (config: ResolvedWunderGraphConfig): Promise<string>{
 const ResolvedWunderGraphConfigToJSON = (config: ResolvedWunderGraphConfig): string => {
 	const operations: Operation[] = config.application.Operations.map((op) => ({
 		content: removeHookVariables(op.Content),
@@ -1201,17 +1202,39 @@ const ResolvedWunderGraphConfigToJSON = (config: ResolvedWunderGraphConfig): str
 	}
 	fs.mkdirSync(dir);
 	let c = 1;
-	out.api?.engineConfiguration?.datasourceConfigurations.forEach((val) => {
+	// const promises: Promise<void>[] = [];
+	out.api?.engineConfiguration?.datasourceConfigurations.forEach((val: any) => {
 		// if (val.customDatabase) {
 		// 	val.customDatabase.graphqlSchema = "";
 		// 	val.customDatabase.prismaSchema = "";
 		// }
 		writeWunderGraphSubFolderFileSync('config' + c.toString(), val);
+		// const contents = JSON.stringify(val, null, 2);
+		// promises.push(
+		// 	new Promise<void>((resolve, reject) => {
+		// 		fs.writeFile(path.join(generated, 'config', `wundergraph.config${c.toString()}.json`), contents, (error) => {
+		// 			if (error) {
+		// 				reject(error);
+		// 			} else {
+		// 				resolve();
+		// 			}
+		// 		});
+		// 	})
+		// );
+		// fs.writeFileSync(path.join(generated, 'config', `wundergraph.config${c.toString()}.json`), val, {
+		// 	encoding: utf8,
+		// });
 		c++;
 		val.childNodes = [];
 		val.rootNodes = [];
 		return val;
 	});
+	// try {
+	// 	await Promise.all(promises);
+	// 	console.log('All files saved successfully.');
+	//   } catch (error) {
+	// 	console.error('Error saving files:', error);
+	// }
 	if (out.api?.engineConfiguration?.datasourceConfigurations) {
 		out.api.engineConfiguration.datasourceConfigurations = [];
 	}
